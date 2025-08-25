@@ -1,0 +1,1 @@
+﻿# catalog services package
