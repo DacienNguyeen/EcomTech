@@ -1,1 +1,0 @@
-﻿# catalog selectors package

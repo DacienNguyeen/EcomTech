@@ -1,1 +1,0 @@
-# catalog api v1
