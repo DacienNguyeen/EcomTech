@@ -123,3 +123,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Use signed cookie session backend to avoid creating django_session table on the
 # remote managed database (we don't run migrations against it).
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+
+# Payment Gateway Settings
+PAYMENT_GATEWAY = {
+    'SANDBOX_MODE': os.getenv('PAYMENT_SANDBOX_MODE', '1') == '1',  # Default to sandbox
+    'SANDBOX_BASE_URL': os.getenv('PAYMENT_SANDBOX_URL', 'https://api.sandbox.payments.com'),
+    'PRODUCTION_BASE_URL': os.getenv('PAYMENT_PRODUCTION_URL', 'https://api.payments.com'),
+    'API_KEY': os.getenv('PAYMENT_API_KEY', 'sandbox_key_test'),
+    'WEBHOOK_SECRET': os.getenv('PAYMENT_WEBHOOK_SECRET', 'sandbox_webhook_secret'),
+    'SUPPORTED_CURRENCIES': ['VND', 'USD', 'EUR'],
+    'DEFAULT_CURRENCY': 'VND',
+    'TIMEOUT_SECONDS': int(os.getenv('PAYMENT_TIMEOUT', '30')),
+}
+
+# Sandbox-specific settings
+if PAYMENT_GATEWAY['SANDBOX_MODE']:
+    PAYMENT_GATEWAY.update({
+        'SIMULATE_DELAYS': os.getenv('PAYMENT_SIMULATE_DELAYS', '1') == '1',
+        'FORCE_SUCCESS': os.getenv('PAYMENT_FORCE_SUCCESS', '0') == '1',  # For testing
+        'LOG_ALL_REQUESTS': os.getenv('PAYMENT_LOG_REQUESTS', '1') == '1',
+    })
