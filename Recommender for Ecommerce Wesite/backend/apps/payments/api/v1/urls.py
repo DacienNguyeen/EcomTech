@@ -7,7 +7,7 @@ from .views import (
 urlpatterns = [
     # Payment processing
     path('charge/', charge_payment, name='charge-payment'),
-    path('<int:payment_id>/status/', get_payment_status, name='payment-status'),
+    path('<str:payment_id>/status/', get_payment_status, name='payment-status'),
     path('order/<int:order_id>/', get_order_payment, name='order-payment'),
     
     # Sandbox features

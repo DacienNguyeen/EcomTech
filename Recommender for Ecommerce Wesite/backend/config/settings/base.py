@@ -90,10 +90,11 @@ REST_FRAMEWORK = {
   "DEFAULT_VERSION": "v1",
   "ALLOWED_VERSIONS": ("v1",),
   "DEFAULT_AUTHENTICATION_CLASSES": [
-      "apps.users.auth.JWTAuthentication",
-      "rest_framework.authentication.SessionAuthentication",
+    "apps.users.auth.SessionCustomerAuthentication",
+    "apps.users.auth.JWTAuthentication",
+    "rest_framework.authentication.SessionAuthentication",
   ],
-  "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
+  "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
   "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
   "PAGE_SIZE": 20,
 }
@@ -108,7 +109,14 @@ SPECTACULAR_SETTINGS = {
 
 # CORS settings for frontend connection (dev)
 CORS_ALLOWED_ORIGINS = [
-  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:3002",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001",
+  "http://127.0.0.1:3002",
+  "http://localhost:8000",
+  "http://127.0.0.1:8000",
 ]
 CORS_ALLOW_CREDENTIALS = True
 

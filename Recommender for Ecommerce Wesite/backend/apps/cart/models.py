@@ -3,8 +3,8 @@ from django.db import models
 
 class CartItem(models.Model):
     """
-    Session-based cart item (stored in session, not DB)
-    This model is mainly for serializer validation
+    Virtual cart item model for serializer validation only
+    Actual cart data is stored in Orders table with status='cart'
     """
     book_id = models.IntegerField()
     quantity = models.IntegerField(default=1)

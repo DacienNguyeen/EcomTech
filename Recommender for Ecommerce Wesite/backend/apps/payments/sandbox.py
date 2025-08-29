@@ -16,10 +16,10 @@ class PaymentSandbox:
     TEST_CARDS = {
         # Successful cards
         '4111111111111111': {'type': 'visa', 'behavior': 'success', 'description': 'Visa - Always succeeds'},
-        '4000000000000002': {'type': 'visa', 'behavior': 'success', 'description': 'Visa - Always succeeds'},
         '5555555555554444': {'type': 'mastercard', 'behavior': 'success', 'description': 'Mastercard - Always succeeds'},
         '2223000048400011': {'type': 'mastercard', 'behavior': 'success', 'description': 'Mastercard - Always succeeds'},
         '378282246310005': {'type': 'amex', 'behavior': 'success', 'description': 'American Express - Always succeeds'},
+        '4242424242424242': {'type': 'visa', 'behavior': 'success', 'description': 'Stripe test card - Always succeeds'},
         
         # Decline cards
         '4000000000000002': {'type': 'visa', 'behavior': 'decline_generic', 'description': 'Generic decline'},
@@ -30,7 +30,6 @@ class PaymentSandbox:
         # Special behavior cards
         '4000000000000341': {'type': 'visa', 'behavior': 'require_authentication', 'description': 'Requires 3D Secure'},
         '4000000000009995': {'type': 'visa', 'behavior': 'slow_processing', 'description': 'Slow processing (5+ seconds)'},
-        '4242424242424242': {'type': 'visa', 'behavior': 'success', 'description': 'Stripe test card - Always succeeds'},
     }
     
     # Payment method configurations

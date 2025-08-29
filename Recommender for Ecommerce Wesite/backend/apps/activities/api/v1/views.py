@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework import permissions, status
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from ...services.log_activity import log_event
@@ -12,12 +13,12 @@ from .serializers import ActivityIn, ActivityBulkIn
     responses={201: OpenApiResponse(description="Created, returns id")}
 )
 @api_view(["POST"])
-@permission_classes([permissions.AllowAny])
+@permission_classes([IsAuthenticated])
 def create_activity(request):
     # support JWT principal via request.user or fallback to session
     customer_id = None
-    if hasattr(request, 'user') and getattr(request.user, 'is_authenticated', False):
-        customer_id = getattr(request.user, 'id', None)
+    # Prefer authenticated principal (JWT or session-based)
+    customer_id = getattr(request.user, 'id', None)
     if customer_id is None:
         customer_id = request.session.get("customer_id")
     if customer_id is None:
@@ -47,11 +48,9 @@ def create_activity(request):
     responses={201: OpenApiResponse(description="Created count")}
 )
 @api_view(["POST"])
-@permission_classes([permissions.AllowAny])
+@permission_classes([IsAuthenticated])
 def create_activity_bulk(request):
-    customer_id = None
-    if hasattr(request, 'user') and getattr(request.user, 'is_authenticated', False):
-        customer_id = getattr(request.user, 'id', None)
+    customer_id = getattr(request.user, 'id', None)
     if customer_id is None:
         customer_id = request.session.get("customer_id")
     if customer_id is None:

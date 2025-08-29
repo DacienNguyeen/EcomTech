@@ -1,6 +1,7 @@
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
 from django.utils import timezone
 from decimal import Decimal
@@ -15,12 +16,7 @@ from .serializers import (
 )
 
 
-def require_customer_session(request):
-    """Check if customer is logged in"""
-    customer_id = request.session.get('customer_id')
-    if not customer_id:
-        return None
-    return customer_id
+# ...existing code...
 
 
 @extend_schema(
@@ -29,124 +25,96 @@ def require_customer_session(request):
     responses={201: OrderResponseSerializer}
 )
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def create_order(request):
-    """Create order from cart or explicit items"""
-    customer_id = require_customer_session(request)
+    """Create order from cart by changing status from 'cart' to 'confirmed'"""
+    customer_id = getattr(request.user, 'id', None)
     if not customer_id:
-        return Response(
-            {"error": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
     
     serializer = CreateOrderSerializer(data=request.data)
     if serializer.is_valid():
         data = serializer.validated_data
         
         if data.get('from_cart', True):
-            # Create order from cart
-            cart_items = request.session.get('cart', {})
-            if not cart_items:
+            # Find cart order for user
+            try:
+                cart_order = Order.objects.get(CustomerID=customer_id, Status='cart')
+                
+                # Check if cart has items
+                cart_items = OrderDetail.objects.filter(OrderID=cart_order.OrderID)
+                if not cart_items.exists():
+                    return Response(
+                        {"error": "Cart is empty"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Update status to confirmed and order date
+                cart_order.Status = 'confirmed'
+                cart_order.OrderDate = timezone.now()
+                cart_order.save()
+                
+                return Response({"order_id": cart_order.OrderID}, status=status.HTTP_201_CREATED)
+                
+            except Order.DoesNotExist:
                 return Response(
                     {"error": "Cart is empty"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            items_data = []
-            for book_id_str, quantity in cart_items.items():
-                book_id = int(book_id_str)
-                try:
-                    book = Book.objects.get(BookID=book_id)
-                    items_data.append({
-                        'book_id': book_id,
-                        'quantity': quantity,
-                        'price': book.Price
-                    })
-                except Book.DoesNotExist:
-                    continue
         else:
-            # Create order from explicit items
+            # Create order from explicit items (existing logic)
             items_data = data['items']
-        
-        if not items_data:
-            return Response(
-                {"error": "No valid items to order"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Calculate total and validate stock
-        total_amount = Decimal('0.00')
-        validated_items = []
-        
-        for item in items_data:
-            try:
-                book = Book.objects.get(BookID=item['book_id'])
-                if book.Stock < item['quantity']:
+            if not items_data:
+                return Response(
+                    {"error": "No valid items to order"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Calculate total and validate stock
+            total_amount = Decimal('0.00')
+            validated_items = []
+
+            for item in items_data:
+                book_data = Book.objects.filter(BookID=item['book_id']).values('BookID', 'Title', 'Price', 'Stock').first()
+                if not book_data:
                     return Response(
-                        {"error": f"Not enough stock for {book.Title}. Available: {book.Stock}"},
+                        {"error": f"Book with ID {item['book_id']} not found"},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+
+                if book_data['Stock'] < item['quantity']:
+                    return Response(
+                        {"error": f"Not enough stock for {book_data['Title']}. Available: {book_data['Stock']}"},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-                
-                price = item.get('price', book.Price)
+
+                price = item.get('price', book_data['Price'])
                 subtotal = price * item['quantity']
                 total_amount += subtotal
-                
                 validated_items.append({
-                    'book': book,
+                    'book_id': item['book_id'],
                     'quantity': item['quantity'],
                     'price': price,
                     'subtotal': subtotal
                 })
-            except Book.DoesNotExist:
-                return Response(
-                    {"error": f"Book with ID {item['book_id']} not found"},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-        
-        # Create order
-        order = Order(
-            CustomerID=customer_id,
-            OrderDate=timezone.now(),
-            TotalAmount=total_amount,
-            Status='pending'
-        )
-        order.save()
-        
-        # Create order details
-        order_details = []
-        for item in validated_items:
-            detail = OrderDetail(
-                OrderID=order.OrderID,
-                BookID=item['book'].BookID,
-                Quantity=item['quantity'],
-                Price=item['price']
+
+            # Create the order
+            order = Order.objects.create(
+                CustomerID=customer_id, 
+                TotalAmount=total_amount,
+                Status='confirmed',
+                OrderDate=timezone.now()
             )
-            detail.save()
-            order_details.append({
-                'order_detail_id': detail.OrderDetailID,
-                'book_id': item['book'].BookID,
-                'book_title': item['book'].Title,
-                'quantity': item['quantity'],
-                'price': item['price'],
-                'subtotal': item['subtotal']
-            })
-        
-        # Clear cart if order was created from cart
-        if data.get('from_cart', True):
-            request.session.pop('cart', None)
-            request.session.modified = True
-        
-        # Return order data
-        order_data = {
-            'order_id': order.OrderID,
-            'customer_id': order.CustomerID,
-            'order_date': order.OrderDate,
-            'total_amount': order.TotalAmount,
-            'status': order.Status,
-            'items': order_details
-        }
-        
-        response_serializer = OrderResponseSerializer(order_data)
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-    
+            for item in validated_items:
+                OrderDetail.objects.create(
+                    OrderID=order.OrderID,
+                    BookID=item['book_id'],
+                    Quantity=item['quantity'],
+                    Price=item['price']
+                )
+
+            return Response({"order_id": order.OrderID}, status=status.HTTP_201_CREATED)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -155,15 +123,13 @@ def create_order(request):
     responses={200: OrderListSerializer(many=True)}
 )
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def list_orders(request):
     """List user's orders"""
-    customer_id = require_customer_session(request)
+    customer_id = getattr(request.user, 'id', None)
     if not customer_id:
-        return Response(
-            {"error": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
-    
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+
     orders = Order.objects.filter(CustomerID=customer_id).order_by('-OrderDate')
     
     orders_data = []
@@ -188,14 +154,12 @@ def list_orders(request):
     responses={200: OrderResponseSerializer}
 )
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_order(request, order_id):
     """Get order details"""
-    customer_id = require_customer_session(request)
+    customer_id = getattr(request.user, 'id', None)
     if not customer_id:
-        return Response(
-            {"error": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
     
     try:
         order = Order.objects.get(OrderID=order_id, CustomerID=customer_id)
@@ -210,11 +174,9 @@ def get_order(request, order_id):
     order_items = []
     
     for detail in details:
-        try:
-            book = Book.objects.get(BookID=detail.BookID)
-            book_title = book.Title
-        except Book.DoesNotExist:
-            book_title = f"Book ID {detail.BookID}"
+        # Use values() to get only Title field and avoid missing columns
+        book_data = Book.objects.filter(BookID=detail.BookID).values('Title').first()
+        book_title = book_data['Title'] if book_data else f"Book ID {detail.BookID}"
         
         order_items.append({
             'order_detail_id': detail.OrderDetailID,
@@ -244,14 +206,12 @@ def get_order(request, order_id):
     responses={200: OrderResponseSerializer}
 )
 @api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
 def cancel_order(request, order_id):
     """Cancel an order (only if pending/confirmed)"""
-    customer_id = require_customer_session(request)
+    customer_id = getattr(request.user, 'id', None)
     if not customer_id:
-        return Response(
-            {"error": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
     
     try:
         order = Order.objects.get(OrderID=order_id, CustomerID=customer_id)
@@ -271,3 +231,45 @@ def cancel_order(request, order_id):
     order.save()
     
     return Response({"message": "Order cancelled successfully"})
+
+
+@extend_schema(
+    tags=["orders"],
+    responses={201: OrderResponseSerializer}
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_order_from_cart(request):
+    """Create order from current cart using cart service (Orders table with status='cart')"""
+    try:
+        from apps.cart.services.cart_service import get_or_create_cart_order
+        from django.db import transaction
+        
+        # Get cart order (status='cart')
+        cart_order = get_or_create_cart_order(request)
+        cart_items = OrderDetail.objects.filter(OrderID=cart_order)
+        
+        if not cart_items.exists():
+            return Response({
+                'status': 'error',
+                'message': 'Cart is empty'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        with transaction.atomic():
+            # Simply change status from 'cart' to 'confirmed'
+            cart_order.Status = 'confirmed'
+            cart_order.OrderDate = timezone.now()
+            cart_order.save()
+        
+        return Response({
+            'status': 'success',
+            'message': 'Order created successfully from cart',
+            'order_id': cart_order.OrderID,
+            'total_amount': cart_order.TotalAmount
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': f'Failed to create order from cart: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,6 +1,7 @@
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from drf_spectacular.utils import extend_schema
 from django.utils import timezone
 from django.conf import settings
@@ -15,18 +16,7 @@ from .serializers import (
 )
 
 
-def require_customer_session(request):
-    """Check if customer is logged in via JWT or session"""
-    # Try JWT first
-    if hasattr(request, 'user') and hasattr(request.user, 'id'):
-        return request.user.id
-    
-    # Fallback to session
-    customer_id = request.session.get('customer_id')
-    if customer_id:
-        return customer_id
-    
-    return None
+# ...existing code...
 
 
 @extend_schema(
@@ -35,6 +25,7 @@ def require_customer_session(request):
     responses={200: PaymentResponseSerializer}
 )
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def charge_payment(request):
     """
     Process payment for an order using sandbox gateway
@@ -49,12 +40,9 @@ def charge_payment(request):
     Use test card 4111111111111111 for successful payments
     Use test card 4000000000000002 for declined payments
     """
-    customer_id = require_customer_session(request)
+    customer_id = getattr(request.user, 'id', None)
     if not customer_id:
-        return Response(
-            {"error": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
     
     serializer = ChargePaymentSerializer(data=request.data)
     if not serializer.is_valid():
@@ -141,6 +129,7 @@ def charge_payment(request):
         PaymentMethod=payment_method,
         Status=payment_result['status'],
         TransactionID=payment_result.get('transaction_id', ''),
+        SandboxPaymentID=payment_result.get('payment_id', ''),
         PaymentDate=payment_result['processed_at']
     )
     payment.save()
@@ -183,17 +172,24 @@ def charge_payment(request):
     responses={200: PaymentStatusSerializer}
 )
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_payment_status(request, payment_id):
     """Get payment status by payment ID"""
-    customer_id = require_customer_session(request)
+    customer_id = getattr(request.user, 'id', None)
     if not customer_id:
-        return Response(
-            {"error": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
     
     try:
-        payment = Payment.objects.get(PaymentID=payment_id)
+        # Try to find by sandbox payment ID first, then by database ID
+        if payment_id.startswith('pay_'):
+            payment = Payment.objects.filter(SandboxPaymentID=payment_id).first()
+        else:
+            # Numeric ID, search by PaymentID
+            payment = Payment.objects.filter(PaymentID=int(payment_id)).first()
+        
+        if not payment:
+            raise Payment.DoesNotExist()
+            
         # Verify payment belongs to customer's order
         order = Order.objects.get(OrderID=payment.OrderID, CustomerID=customer_id)
     except (Payment.DoesNotExist, Order.DoesNotExist):
@@ -228,14 +224,12 @@ def get_payment_status(request, payment_id):
     responses={200: PaymentStatusSerializer}
 )
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_order_payment(request, order_id):
     """Get payment info for an order"""
-    customer_id = require_customer_session(request)
+    customer_id = getattr(request.user, 'id', None)
     if not customer_id:
-        return Response(
-            {"error": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
     
     try:
         order = Order.objects.get(OrderID=order_id, CustomerID=customer_id)
@@ -280,6 +274,7 @@ def get_order_payment(request, order_id):
     description="Returns information about test cards, supported methods, and sandbox capabilities"
 )
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_sandbox_info(request):
     """
     Get information about sandbox testing capabilities

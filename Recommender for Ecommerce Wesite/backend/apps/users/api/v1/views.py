@@ -1,6 +1,7 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status, generics, permissions
+from rest_framework.permissions import AllowAny
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, make_password
@@ -13,6 +14,7 @@ User = get_user_model()
 
 @extend_schema(request=RegisterInSerializer, responses={201: CustomerOutSerializer})
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def register(request):
     serializer = RegisterInSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -25,6 +27,7 @@ def register(request):
 
 @extend_schema(request=LoginInSerializer, responses={200: OpenApiResponse(response=CustomerOutSerializer)})
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def login_view(request):
     serializer = LoginInSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)

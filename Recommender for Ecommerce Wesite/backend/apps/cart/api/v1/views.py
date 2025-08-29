@@ -1,188 +1,227 @@
-from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema
+from rest_framework import status
+from django.db import transaction
 from decimal import Decimal
+import logging
 
+from apps.cart.services.cart_service import get_or_create_cart_order, update_cart_total
+from apps.orders.models import Order, OrderDetail
 from apps.catalog.models import Book
-from .serializers import (
-    CartResponseSerializer, 
-    AddToCartSerializer, 
-    UpdateCartItemSerializer,
-    CartItemResponseSerializer
-)
+from .serializers import CartItemSerializer, CartResponseSerializer
+
+logger = logging.getLogger(__name__)
 
 
-def get_cart_from_session(request):
-    """Get cart items from session"""
-    return request.session.get('cart', {})
-
-
-def save_cart_to_session(request, cart):
-    """Save cart items to session"""
-    request.session['cart'] = cart
-    request.session.modified = True
-
-
-def calculate_cart_data(cart_items):
-    """Calculate cart totals and get book details"""
-    items = []
-    total_amount = Decimal('0.00')
-    total_items = 0
-    
-    for book_id_str, quantity in cart_items.items():
-        try:
-            book = Book.objects.get(BookID=int(book_id_str))
-            subtotal = book.Price * quantity
-            total_amount += subtotal
-            total_items += quantity
-            
-            items.append({
-                'book_id': book.BookID,
-                'title': book.Title,
-                'price': book.Price,
-                'quantity': quantity,
-                'subtotal': subtotal
-            })
-        except Book.DoesNotExist:
-            continue  # Skip invalid books
-    
-    return {
-        'items': items,
-        'total_items': total_items,
-        'total_amount': total_amount
-    }
-
-
-@extend_schema(
-    tags=["cart"],
-    responses={200: CartResponseSerializer}
-)
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_cart(request):
-    """Get current cart contents"""
-    cart_items = get_cart_from_session(request)
-    cart_data = calculate_cart_data(cart_items)
+    """Get current cart contents from Orders table (status='cart')"""
+    try:
+        cart_order = get_or_create_cart_order(request)
+        cart_items = OrderDetail.objects.filter(OrderID=cart_order.OrderID)
+        
+        items_data = []
+        total_amount = Decimal('0.00')
+        total_items = 0
+        
+        for cart_item in cart_items:
+            # Get book info
+            try:
+                book = Book.objects.get(BookID=cart_item.BookID)
+                subtotal = cart_item.Price * cart_item.Quantity
+                items_data.append({
+                    'book_id': cart_item.BookID,
+                    'title': book.Title,
+                    'price': cart_item.Price,
+                    'quantity': cart_item.Quantity,
+                    'subtotal': subtotal
+                })
+                total_amount += subtotal
+                total_items += cart_item.Quantity
+            except Book.DoesNotExist:
+                continue  # Skip items with missing books
+        
+        return Response({
+            'status': 'success',
+            'items': items_data,
+            'total_items': total_items,
+            'total_amount': total_amount
+        })
     
-    serializer = CartResponseSerializer(cart_data)
-    return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error getting cart: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error getting cart: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@extend_schema(
-    tags=["cart"],
-    request=AddToCartSerializer,
-    responses={200: CartResponseSerializer}
-)
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def add_to_cart(request):
-    """Add item to cart"""
-    serializer = AddToCartSerializer(data=request.data)
-    if serializer.is_valid():
+    """Add item to cart - stores in Orders table with status='cart'"""
+    try:
+        serializer = CartItemSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                'status': 'error',
+                'message': 'Invalid data',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         book_id = serializer.validated_data['book_id']
         quantity = serializer.validated_data['quantity']
         
-        cart_items = get_cart_from_session(request)
-        book_id_str = str(book_id)
-        
-        # Check stock
+        # Get book
         try:
             book = Book.objects.get(BookID=book_id)
-            current_quantity = cart_items.get(book_id_str, 0)
-            new_quantity = current_quantity + quantity
-            
-            if book.Stock < new_quantity:
-                return Response(
-                    {"error": f"Not enough stock. Available: {book.Stock}, Requested: {new_quantity}"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
         except Book.DoesNotExist:
-            return Response(
-                {"error": "Book not found"}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({
+                'status': 'error',
+                'message': 'Book not found'
+            }, status=status.HTTP_404_NOT_FOUND)
         
-        # Add to cart
-        cart_items[book_id_str] = new_quantity
-        save_cart_to_session(request, cart_items)
+        # Get or create cart order
+        cart_order = get_or_create_cart_order(request)
         
-        # Return updated cart
-        cart_data = calculate_cart_data(cart_items)
-        response_serializer = CartResponseSerializer(cart_data)
-        return Response(response_serializer.data)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@extend_schema(
-    tags=["cart"],
-    request=UpdateCartItemSerializer,
-    responses={200: CartResponseSerializer}
-)
-@api_view(['PATCH'])
-def update_cart_item(request, book_id):
-    """Update cart item quantity"""
-    serializer = UpdateCartItemSerializer(data=request.data)
-    if serializer.is_valid():
-        quantity = serializer.validated_data['quantity']
-        
-        cart_items = get_cart_from_session(request)
-        book_id_str = str(book_id)
-        
-        if quantity == 0:
-            # Remove item
-            cart_items.pop(book_id_str, None)
-        else:
-            # Check stock
+        with transaction.atomic():
+            # Get or create cart item (OrderDetail)
             try:
-                book = Book.objects.get(BookID=book_id)
-                if book.Stock < quantity:
-                    return Response(
-                        {"error": f"Not enough stock. Available: {book.Stock}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-            except Book.DoesNotExist:
-                return Response(
-                    {"error": "Book not found"}, 
-                    status=status.HTTP_404_NOT_FOUND
+                cart_item = OrderDetail.objects.get(
+                    OrderID=cart_order.OrderID,
+                    BookID=book_id
+                )
+                # Item already exists, increase quantity
+                cart_item.Quantity += quantity
+                cart_item.save()
+            except OrderDetail.DoesNotExist:
+                # Create new cart item
+                cart_item = OrderDetail.objects.create(
+                    OrderID=cart_order.OrderID,
+                    BookID=book_id,
+                    Quantity=quantity,
+                    Price=book.Price
                 )
             
-            cart_items[book_id_str] = quantity
+            # Update cart total
+            update_cart_total(cart_order)
         
-        save_cart_to_session(request, cart_items)
+        return Response({
+            'status': 'success',
+            'message': 'Item added to cart successfully',
+            'book_id': book_id,
+            'quantity': cart_item.Quantity
+        })
         
-        # Return updated cart
-        cart_data = calculate_cart_data(cart_items)
-        response_serializer = CartResponseSerializer(cart_data)
-        return Response(response_serializer.data)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Error adding to cart: {str(e)}")
+        return Response({
+            'status': 'error', 
+            'message': f'Failed to add to cart: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@extend_schema(
-    tags=["cart"],
-    responses={200: CartResponseSerializer}
-)
+@api_view(['PATCH'])
+@permission_classes([AllowAny])
+def update_cart_item(request, book_id):
+    """Update cart item quantity in Orders table"""
+    try:
+        quantity = request.data.get('quantity', 1)
+        if quantity < 1:
+            return Response({
+                'status': 'error',
+                'message': 'Quantity must be at least 1'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        cart_order = get_or_create_cart_order(request)
+        
+        try:
+            cart_item = OrderDetail.objects.get(OrderID=cart_order.OrderID, BookID=book_id)
+            cart_item.Quantity = quantity
+            cart_item.save()
+            
+            # Update cart total
+            update_cart_total(cart_order)
+            
+            return Response({
+                'status': 'success',
+                'message': 'Cart item updated successfully',
+                'book_id': book_id,
+                'quantity': quantity
+            })
+        except OrderDetail.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': 'Item not found in cart'
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        logger.error(f"Error updating cart item: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error updating cart item: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['DELETE'])
+@permission_classes([AllowAny])
 def remove_from_cart(request, book_id):
-    """Remove item from cart"""
-    cart_items = get_cart_from_session(request)
-    book_id_str = str(book_id)
-    cart_items.pop(book_id_str, None)
-    save_cart_to_session(request, cart_items)
-    
-    # Return updated cart
-    cart_data = calculate_cart_data(cart_items)
-    response_serializer = CartResponseSerializer(cart_data)
-    return Response(response_serializer.data)
+    """Remove item from cart (Orders table)"""
+    try:
+        cart_order = get_or_create_cart_order(request)
+        
+        try:
+            cart_item = OrderDetail.objects.get(OrderID=cart_order.OrderID, BookID=book_id)
+            cart_item.delete()
+            
+            # Update cart total
+            update_cart_total(cart_order)
+            
+            return Response({
+                'status': 'success',
+                'message': 'Item removed from cart successfully',
+                'book_id': book_id
+            })
+        except OrderDetail.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': 'Item not found in cart'
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        logger.error(f"Error removing from cart: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error removing from cart: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@extend_schema(
-    tags=["cart"],
-    responses={200: {"description": "Cart cleared successfully"}}
-)
 @api_view(['DELETE'])
+@permission_classes([AllowAny])
 def clear_cart(request):
-    """Clear entire cart"""
-    request.session.pop('cart', None)
-    request.session.modified = True
-    return Response({"message": "Cart cleared successfully"})
+    """Clear all items from cart (Orders table)"""
+    try:
+        cart_order = get_or_create_cart_order(request)
+        deleted_count = OrderDetail.objects.filter(OrderID=cart_order.OrderID).delete()[0]
+        
+        # Update cart total to 0
+        cart_order.TotalAmount = 0
+        cart_order.save()
+        
+        return Response({
+            'status': 'success',
+            'message': f'Cart cleared successfully. {deleted_count} items removed.'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error clearing cart: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': f'Error clearing cart: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Alias for add_to_cart to support both URLs
+add_item = add_to_cart
