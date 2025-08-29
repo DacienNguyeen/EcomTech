@@ -80,12 +80,19 @@ DATABASES = {
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 
+JWT_SECRET = os.getenv('JWT_SECRET', SECRET_KEY)
+JWT_ACCESS_TTL_MINUTES = int(os.getenv('JWT_ACCESS_TTL_MINUTES', '15'))
+JWT_REFRESH_TTL_DAYS = int(os.getenv('JWT_REFRESH_TTL_DAYS', '7'))
+
 REST_FRAMEWORK = {
   "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
   "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
   "DEFAULT_VERSION": "v1",
   "ALLOWED_VERSIONS": ("v1",),
-  "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
+  "DEFAULT_AUTHENTICATION_CLASSES": [
+      "apps.users.auth.JWTAuthentication",
+      "rest_framework.authentication.SessionAuthentication",
+  ],
   "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
   "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
   "PAGE_SIZE": 20,
