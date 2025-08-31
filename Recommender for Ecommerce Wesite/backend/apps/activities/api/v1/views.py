@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from ...services.log_activity import log_event
 from .serializers import ActivityIn, ActivityBulkIn
+from apps.recommendations.services import RecommendationEngine
 
 @extend_schema(
     summary="Create one activity (requires login)",
@@ -38,6 +39,21 @@ def create_activity(request):
         session_id=request.session.session_key if hasattr(request, "session") else None,
         when=serializer.validated_data["activity_time"],
     )
+    
+    # Update recommendation engine
+    try:
+        engine = RecommendationEngine()
+        engine.update_user_interactions(
+            user_id=customer_id,
+            book_id=serializer.validated_data["book_id"],
+            interaction_type=serializer.validated_data["action"]
+        )
+    except Exception as e:
+        # Log error but don't fail the request
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error updating recommendations: {e}")
+    
     return Response({"id": ua.ActivityID}, status=status.HTTP_201_CREATED)
 
 
@@ -69,6 +85,8 @@ def create_activity_bulk(request):
         return Response({"detail": "Too many events"}, status=status.HTTP_400_BAD_REQUEST)
 
     created = 0
+    engine = RecommendationEngine()
+    
     for e in items:
         log_event(
             customer_id=customer_id,
@@ -77,6 +95,20 @@ def create_activity_bulk(request):
             session_id=sid,
             when=e["activity_time"],
         )
+        
+        # Update recommendation engine for each event
+        try:
+            engine.update_user_interactions(
+                user_id=customer_id,
+                book_id=e["book_id"],
+                interaction_type=e["action"]
+            )
+        except Exception as ex:
+            # Log error but continue processing
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error updating recommendations for bulk event: {ex}")
+        
         created += 1
 
     return Response({"created": created}, status=status.HTTP_201_CREATED)

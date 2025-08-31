@@ -78,7 +78,10 @@ DATABASES = {
 }
 
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 JWT_SECRET = os.getenv('JWT_SECRET', SECRET_KEY)
 JWT_ACCESS_TTL_MINUTES = int(os.getenv('JWT_ACCESS_TTL_MINUTES', '15'))

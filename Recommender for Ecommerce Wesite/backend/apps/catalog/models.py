@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 
 class Author(models.Model):
@@ -31,7 +32,7 @@ class Publisher(models.Model):
 class Category(models.Model):
     CategoryID = models.AutoField(primary_key=True, db_column='CategoryID')
     CategoryName = models.CharField(max_length=100, db_column='CategoryName')
-    Description = models.TextField(null=True, blank=True, db_column='Description')
+    # Description field removed - doesn't exist in database schema
 
     class Meta:
         managed = False
