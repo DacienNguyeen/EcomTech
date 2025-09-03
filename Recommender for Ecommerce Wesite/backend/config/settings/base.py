@@ -123,6 +123,47 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',  # Giảm log level để tiết kiệm memory
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'ERROR',  # Chỉ log error
+            'propagate': False,
+        },
+        'apps.recommendations': {
+            'handlers': ['console'], 
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# Memory optimizations
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB limit
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB limit
+
+# Disable debug toolbar and unnecessary middlewares in production
+if not DEBUG:
+    MIDDLEWARE = [m for m in MIDDLEWARE if 'debug' not in m.lower()]
+
+# Session optimization - use database sessions for memory efficiency  
+if not DEBUG:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+    SESSION_COOKIE_AGE = 3600  # 1 hour
+else:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+
 # Default language and timezone
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'

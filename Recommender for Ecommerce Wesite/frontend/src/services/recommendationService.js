@@ -6,6 +6,22 @@ class RecommendationService {
   }
 
   /**
+   * Lấy gợi ý content-based cá nhân hóa (requires authentication)
+   */
+  async getContentBasedRecommendations(k = 10) {
+    try {
+      const response = await ApiService.request(`/recommendations/v1/content/?k=${k}`, {
+        method: 'GET',
+        auth: true // Requires authentication
+      });
+      return response;
+    } catch (error) {
+      console.error('Error getting content-based recommendations:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Lấy gợi ý sách cho customer (sử dụng các bảng có sẵn)
    */
   async getRecommendations(customerId, limit = 10) {

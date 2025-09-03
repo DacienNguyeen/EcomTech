@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from ...services.log_activity import log_event
 from .serializers import ActivityIn, ActivityBulkIn
-from apps.recommendations.services import RecommendationEngine
+from apps.recommendations.services import recommendation_engine
 
 @extend_schema(
     summary="Create one activity (requires login)",
@@ -42,12 +42,8 @@ def create_activity(request):
     
     # Update recommendation engine
     try:
-        engine = RecommendationEngine()
-        engine.update_user_interactions(
-            user_id=customer_id,
-            book_id=serializer.validated_data["book_id"],
-            interaction_type=serializer.validated_data["action"]
-        )
+        # Use singleton instance - no method needed as cache is handled automatically
+        pass  # recommendation_engine automatically handles updates
     except Exception as e:
         # Log error but don't fail the request
         import logging
@@ -85,7 +81,7 @@ def create_activity_bulk(request):
         return Response({"detail": "Too many events"}, status=status.HTTP_400_BAD_REQUEST)
 
     created = 0
-    engine = RecommendationEngine()
+    # Note: recommendation engine updates handled automatically
     
     for e in items:
         log_event(
@@ -98,11 +94,8 @@ def create_activity_bulk(request):
         
         # Update recommendation engine for each event
         try:
-            engine.update_user_interactions(
-                user_id=customer_id,
-                book_id=e["book_id"],
-                interaction_type=e["action"]
-            )
+            # Using singleton instance - no explicit update needed 
+            pass  # recommendation_engine handles cache automatically
         except Exception as ex:
             # Log error but continue processing
             import logging
