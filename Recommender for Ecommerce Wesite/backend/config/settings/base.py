@@ -90,9 +90,8 @@ REST_FRAMEWORK = {
   "DEFAULT_VERSION": "v1",
   "ALLOWED_VERSIONS": ("v1",),
   "DEFAULT_AUTHENTICATION_CLASSES": [
-    "apps.users.auth.SessionCustomerAuthentication",
-    "apps.users.auth.JWTAuthentication",
     "rest_framework.authentication.SessionAuthentication",
+    "rest_framework.authentication.BasicAuthentication",
   ],
   "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
   "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
