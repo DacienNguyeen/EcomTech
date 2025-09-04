@@ -8,15 +8,18 @@ DEBUG=0
 SECRET_KEY=your-super-secret-key-generate-a-new-one-here
 
 # Hosts and CORS (Required) 
-ALLOWED_HOSTS=ecomtech.onrender.com,localhost,127.0.0.1
-CSRF_TRUSTED_ORIGINS=https://ecomtech.onrender.com
-CORS_ALLOWED_ORIGINS=https://ecomtech-domain.tld
+# Set ALLOWED_HOSTS to your production host(s), comma separated
+ALLOWED_HOSTS=${ALLOWED_HOSTS:-ecomtech.onrender.com}
+CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-https://ecomtech.onrender.com}
+# Set CORS_ALLOWED_ORIGINS to your frontend origin(s), e.g. https://app.yourdomain.com
+CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://ecomtech-domain.tld}
 
-# Backend URL for image generation
-BACKEND_URL=https://ecomtech.onrender.com
+# Backend URL for image generation (used when constructing absolute image URLs)
+# Example: BACKEND_URL=https://ecomtech.onrender.com
+BACKEND_URL=${BACKEND_URL:-https://ecomtech.onrender.com}
 
-# Frontend URL for PayPal redirects
-FRONTEND_URL=https://ecomtech-domain.tld
+# Frontend URL for PayPal redirects (used by redirect flows)
+FRONTEND_URL=${FRONTEND_URL:-https://ecomtech-domain.tld}
 
 # PayPal Settings
 PAYPAL_MODE=sandbox

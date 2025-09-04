@@ -104,7 +104,8 @@ SPECTACULAR_SETTINGS = {
   "DESCRIPTION": "DRF over existing MariaDB schema: catalog, orders, payments, activities.",
   "VERSION": "1.0.0",
   "SERVE_INCLUDE_SCHEMA": False,
-  "SERVERS": [{"url": "http://localhost:8000", "description": "Local"}],
+    # Use BACKEND_URL env when available so OpenAPI servers point to the deployment host
+    "SERVERS": [{"url": os.getenv('BACKEND_URL', 'http://localhost:8000'), "description": "Local/Configured"}],
 }
 
 # CORS settings for frontend connection (dev)
@@ -172,6 +173,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Frontend URL for PayPal redirects
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+# Optional BACKEND_URL to be used when constructing absolute URLs in code
+BACKEND_URL = os.getenv('BACKEND_URL', '') or None
 
 # Use signed cookie session backend to avoid creating django_session table on the
 # remote managed database (we don't run migrations against it).

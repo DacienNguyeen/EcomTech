@@ -14,18 +14,14 @@ except ImportError:
 DEBUG = False
 SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-this')
 
-# Hosts
-ALLOWED_HOSTS = ['ecomtech.onrender.com', '*.onrender.com', 'localhost', '127.0.0.1']
+# Hosts - allow listing via environment variable (comma separated)
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'ecomtech.onrender.com,*.onrender.com')
+ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS.split(',') if h.strip()]
 
-# CSRF và CORS
-CSRF_TRUSTED_ORIGINS = [
-    'https://ecomtech.onrender.com',
-]
+# CSRF và CORS - configurable via env
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://ecomtech.onrender.com').split(',') if o.strip()]
 
-CORS_ALLOWED_ORIGINS = [
-    'https://ecomtech.onrender.com',
-    'http://localhost:3000',  # For development testing
-]
+CORS_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get('CORS_ALLOWED_ORIGINS', 'https://ecomtech.onrender.com').split(',') if o.strip()]
 
 # Backend URL for image generation
 BACKEND_URL = os.environ.get('BACKEND_URL', 'https://ecomtech.onrender.com')

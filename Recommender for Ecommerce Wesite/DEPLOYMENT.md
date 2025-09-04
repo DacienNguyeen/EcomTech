@@ -79,7 +79,7 @@ After frontend is deployed, update `backend/config/settings/production.py`:
 ```python
 CORS_ALLOWED_ORIGINS = [
     "https://your-frontend-name.vercel.app",  # Replace with actual Vercel URL
-    "http://localhost:3000",
+   "${FRONTEND_URL:-http://localhost:3000}",
 ]
 ```
 

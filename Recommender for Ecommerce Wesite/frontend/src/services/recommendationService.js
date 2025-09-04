@@ -2,10 +2,13 @@ import ApiService from './api';
 
 class RecommendationService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_BASE_URL || 
-      (process.env.NODE_ENV === 'production' 
-        ? 'https://ecomtech.onrender.com/api/v1' 
-        : 'http://localhost:8000/api/v1');
+    // Use REACT_APP_API_URL if set (should include protocol and host, optional /api path)
+    const envBase = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL;
+    if (envBase) {
+      this.baseURL = envBase.endsWith('/api') ? envBase.replace(/\/$/, '') : envBase.replace(/\/$/, '') + '/api/v1';
+    } else {
+      this.baseURL = process.env.NODE_ENV === 'production' ? 'https://ecomtech.onrender.com/api/v1' : 'http://localhost:8000/api/v1';
+    }
   }
 
   /**

@@ -1,7 +1,8 @@
 # 🚀 FINAL DEPLOYMENT GUIDE
 
-## ✅ READY TO DEPLOY
-Tất cả hardcoded localhost URLs đã được fix! Code hiện tại ready cho production.
+## ✅ READY TO DEPLOY (NEXT STEPS)
+Most runtime code paths have been parameterized to use environment variables (BACKEND_URL / FRONTEND_URL / REACT_APP_API_URL).
+There remain a few documentation and dev env files that reference localhost; update your environment variables on Render/Vercel to ensure production uses the correct domains.
 
 ## 📋 DEPLOYMENT CHECKLIST
 
@@ -60,8 +61,7 @@ CORS_ALLOWED_ORIGINS = [
 ## 🔧 FIXED ISSUES IN THIS SESSION
 
 ### ✅ Dynamic URL Generation
-- ❌ OLD: `http://127.0.0.1:8000/media/book_images/...`
-- ✅ NEW: Tự động detect environment và dùng đúng domain
+- Runtime code now prefers BACKEND_URL/FRONTEND_URL (from env) or REACT_APP_API_URL in the frontend. If env vars are set on Render/Vercel, production will not reference localhost.
 
 ### ✅ Image Loading System  
 - ProductImage component with error handling

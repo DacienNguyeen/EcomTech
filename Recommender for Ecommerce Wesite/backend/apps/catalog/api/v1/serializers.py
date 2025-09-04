@@ -12,14 +12,14 @@ def get_absolute_image_url(image_path, request=None):
     # Try to get base URL from Django settings or request
     from django.conf import settings
     
-    # Use BACKEND_URL from environment if set, otherwise construct from request
+    # Use BACKEND_URL from settings/env if set, otherwise construct from request
     base_url = getattr(settings, 'BACKEND_URL', None)
     if not base_url:
         if request:
             base_url = f"{request.scheme}://{request.get_host()}"
         else:
             # Fallback for local development
-            base_url = "http://127.0.0.1:8000"
+            base_url = getattr(settings, 'FRONTEND_URL', None) or "http://127.0.0.1:8000"
     
     if image_path.startswith('/'):
         return f"{base_url}{image_path}"
