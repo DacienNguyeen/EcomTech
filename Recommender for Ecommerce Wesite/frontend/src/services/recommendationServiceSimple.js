@@ -2,7 +2,10 @@ import ApiService from './api';
 
 class RecommendationService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
+    this.baseURL = process.env.REACT_APP_API_BASE_URL || 
+      (process.env.NODE_ENV === 'production' 
+        ? 'https://bookverse-backend.onrender.com/api/v1' 
+        : 'http://localhost:8000/api/v1');
   }
 
   /**

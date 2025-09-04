@@ -14,8 +14,11 @@ export const resolveImageUrl = (imageUrl) => {
     return imageUrl;
   }
 
-  // Get backend host (remove '/api' from VITE_API_BASE)
-  const apiBase = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api';
+  // Get backend host - use React env variables with production fallback
+  const apiBase = process.env.REACT_APP_API_URL || 
+    (process.env.NODE_ENV === 'production' 
+      ? 'https://bookverse-backend.onrender.com' 
+      : 'http://127.0.0.1:8000');
   const backendHost = apiBase.replace('/api', '');
 
   // If starts with '/' (absolute path), combine with backend host

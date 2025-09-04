@@ -1,5 +1,8 @@
 // API Configuration và Base Service
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://bookverse-backend.onrender.com' 
+    : 'http://localhost:8000');
 
 class ApiService {
   constructor() {
