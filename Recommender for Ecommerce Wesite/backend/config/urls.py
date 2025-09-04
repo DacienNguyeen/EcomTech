@@ -29,6 +29,9 @@ urlpatterns = [
     # Root endpoint - handles HEAD / requests to avoid 404s
     path("", root_view, name="root"),
     
+    # Simple health check at root level (in addition to /api/v1/healthz/)
+    path("healthz/", healthz_view, name="healthz_root"),
+    
     path("admin/", admin.site.urls),
 
     path("api/v1/catalog/", include("apps.catalog.api.v1.urls")),
