@@ -24,15 +24,21 @@ Go to your service → Environment tab and add:
 ```
 SECRET_KEY=your-very-long-secret-key-here-generate-a-new-one
 DJANGO_SETTINGS_MODULE=config.settings.production
+
+# CloudMonster ASP MySQL Database
+DB_NAME=your_database_name
+DB_USER=your_database_user  
+DB_PASSWORD=your_database_password
+DB_HOST=your_cloudmonster_mysql_host
+DB_PORT=3306
 ```
 
-### Step 4: Add Database (Optional - PostgreSQL)
-1. In Render dashboard, click "New" → "PostgreSQL"  
-2. Create database, copy the DATABASE_URL
-3. Add to your web service environment variables:
-   ```
-   DATABASE_URL=your-postgres-url-from-render
-   ```
+### Step 4: Database Setup
+Since you're using CloudMonster ASP MySQL:
+1. Get your MySQL connection details from CloudMonster ASP dashboard
+2. Add the database environment variables to Render (as shown above)
+3. The Django app will connect to your existing MySQL database
+4. Run migrations after first deployment (check Render logs)
 
 ### Step 5: Update ALLOWED_HOSTS
 After deployment, update `backend/config/settings/production.py`:
@@ -98,8 +104,9 @@ After deployment, your URLs will be:
 - Ensure CORS is configured correctly in backend
 
 ### Database:
-- If using MySQL: Configure external MySQL service and set DB_* environment variables
-- If using PostgreSQL: Use Render's PostgreSQL add-on (recommended)
+- Configure CloudMonster ASP MySQL connection details in environment variables
+- Make sure your CloudMonster MySQL allows connections from Render servers
+- Verify DB_HOST, DB_USER, DB_PASSWORD, DB_NAME are correct
 
 ---
 
