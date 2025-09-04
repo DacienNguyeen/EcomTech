@@ -177,11 +177,24 @@ USE_TZ = True
 
 # Default auto field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Frontend URL for PayPal redirects
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+
 # Use signed cookie session backend to avoid creating django_session table on the
 # remote managed database (we don't run migrations against it).
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 
-# Payment Gateway Settings
+# PayPal Settings
+PAYPAL_SETTINGS = {
+    'MODE': os.getenv('PAYPAL_MODE', 'sandbox'),  # 'sandbox' or 'live'
+    'CLIENT_ID': os.getenv('PAYPAL_CLIENT_ID', ''),
+    'CLIENT_SECRET': os.getenv('PAYPAL_CLIENT_SECRET', ''),
+    'SANDBOX_EMAIL': os.getenv('PAYPAL_SANDBOX_EMAIL', ''),
+    'WEBHOOK_ID': os.getenv('PAYPAL_WEBHOOK_ID', ''),
+}
+
+# Payment Gateway Settings (Legacy)
 PAYMENT_GATEWAY = {
     'SANDBOX_MODE': os.getenv('PAYMENT_SANDBOX_MODE', '1') == '1',  # Default to sandbox
     'SANDBOX_BASE_URL': os.getenv('PAYMENT_SANDBOX_URL', 'https://api.sandbox.payments.com'),

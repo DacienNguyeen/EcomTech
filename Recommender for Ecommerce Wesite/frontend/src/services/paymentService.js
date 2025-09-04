@@ -1,6 +1,36 @@
 import ApiService from './api';
 
 class PaymentService {
+  // PayPal Integration Methods
+  async createPayPalOrder(orderId) {
+    try {
+      const response = await ApiService.request('/payments/paypal/create-order/', {
+        method: 'POST',
+        body: JSON.stringify({ order_id: orderId })
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('Create PayPal order failed:', error);
+      throw error;
+    }
+  }
+
+  async capturePayPalPayment(paypalOrderId) {
+    try {
+      const response = await ApiService.request('/payments/paypal/capture/', {
+        method: 'POST',
+        body: JSON.stringify({ paypal_order_id: paypalOrderId })
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('Capture PayPal payment failed:', error);
+      throw error;
+    }
+  }
+
+  // Legacy Payment Methods
   // Khởi tạo thanh toán
   async chargePayment(paymentData) {
     try {

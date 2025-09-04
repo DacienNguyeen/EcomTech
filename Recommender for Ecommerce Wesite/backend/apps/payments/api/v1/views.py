@@ -6,14 +6,161 @@ from drf_spectacular.utils import extend_schema
 from django.utils import timezone
 from django.conf import settings
 import time
+import logging
+from decimal import Decimal
 
 from apps.orders.models import Order
 from apps.payments.models import Payment
 from apps.payments.sandbox import PaymentSandbox
+from apps.payments.paypal_service import PayPalService
 from .serializers import (
     ChargePaymentSerializer, PaymentResponseSerializer, 
     PaymentStatusSerializer, SandboxInfoSerializer, WebhookEventSerializer
 )
+
+
+logger = logging.getLogger(__name__)
+
+
+# PayPal Integration Views
+@extend_schema(
+    tags=["payments"],
+    summary="Create PayPal order",
+    description="Create a PayPal payment order for checkout"
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_paypal_order(request):
+    """Create PayPal order for payment"""
+    customer_id = getattr(request.user, 'id', None)
+    if not customer_id:
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    try:
+        order_id = request.data.get('order_id')
+        if not order_id:
+            return Response({"error": "order_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify order exists and belongs to customer
+        order = Order.objects.get(OrderID=order_id, CustomerID=customer_id)
+        
+        # Create PayPal order
+        paypal_service = PayPalService()
+        result = paypal_service.create_order(
+            amount=order.TotalAmount,
+            currency='USD',
+            order_id=str(order_id)
+        )
+        
+        if result.get('success'):
+            # Find approval URL
+            approval_url = None
+            for link in result.get('links', []):
+                if link.get('rel') == 'approve':
+                    approval_url = link.get('href')
+                    break
+            
+            # Create payment record
+            payment = Payment.objects.create(
+                OrderID=order_id,
+                Amount=order.TotalAmount,
+                PaymentMethod='paypal',
+                Status='pending',
+                PaypalOrderID=result.get('order_id'),
+                PaymentDate=timezone.now()
+            )
+            
+            return Response({
+                'success': True,
+                'paypal_order_id': result.get('order_id'),
+                'approval_url': approval_url,
+                'payment_id': payment.PaymentID
+            })
+        else:
+            logger.error(f"PayPal order creation failed: {result}")
+            return Response({
+                'success': False,
+                'error': result.get('error', 'Unknown error')
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"PayPal order creation error: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    tags=["payments"],
+    summary="Capture PayPal payment",
+    description="Capture/finalize PayPal payment after user approval"
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def capture_paypal_payment(request):
+    """Capture PayPal payment after user approval"""
+    customer_id = getattr(request.user, 'id', None)
+    if not customer_id:
+        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    try:
+        paypal_order_id = request.data.get('paypal_order_id')
+        if not paypal_order_id:
+            return Response({"error": "paypal_order_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find payment record
+        payment = Payment.objects.get(PaypalOrderID=paypal_order_id)
+        
+        # Verify order belongs to customer
+        order = Order.objects.get(OrderID=payment.OrderID, CustomerID=customer_id)
+        
+        # Capture payment
+        paypal_service = PayPalService()
+        result = paypal_service.capture_order(paypal_order_id)
+        
+        if result.get('success'):
+            # Extract capture details
+            purchase_units = result.get('purchase_units', [])
+            capture_info = {}
+            if purchase_units:
+                captures = purchase_units[0].get('payments', {}).get('captures', [])
+                if captures:
+                    capture_info = captures[0]
+            
+            # Update payment record
+            payment.Status = 'completed'
+            payment.TransactionID = capture_info.get('id')
+            payment.PaypalPayerID = result.get('payer', {}).get('payer_id')
+            payment.PaypalPaymentID = capture_info.get('id')
+            payment.save()
+            
+            # Update order status
+            order.Status = 'paid'
+            order.save()
+            
+            return Response({
+                'success': True,
+                'status': 'completed',
+                'transaction_id': capture_info.get('id'),
+                'payment_id': payment.PaymentID
+            })
+        else:
+            logger.error(f"PayPal capture failed: {result}")
+            payment.Status = 'failed'
+            payment.save()
+            
+            return Response({
+                'success': False,
+                'error': result.get('error', 'Capture failed')
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Payment.DoesNotExist:
+        return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"PayPal capture error: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ...existing code...

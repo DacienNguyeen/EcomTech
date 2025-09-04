@@ -1,11 +1,16 @@
 from django.urls import path
 from .views import (
     charge_payment, get_payment_status, get_order_payment,
-    get_sandbox_info, simulate_webhook
+    get_sandbox_info, simulate_webhook,
+    create_paypal_order, capture_paypal_payment
 )
 
 urlpatterns = [
-    # Payment processing
+    # PayPal integration
+    path('paypal/create-order/', create_paypal_order, name='create-paypal-order'),
+    path('paypal/capture/', capture_paypal_payment, name='capture-paypal-payment'),
+    
+    # Legacy payment processing
     path('charge/', charge_payment, name='charge-payment'),
     path('<str:payment_id>/status/', get_payment_status, name='payment-status'),
     path('order/<int:order_id>/', get_order_payment, name='order-payment'),
