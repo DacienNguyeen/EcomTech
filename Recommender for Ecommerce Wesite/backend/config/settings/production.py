@@ -17,6 +17,9 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
 ]
 
+# Backend URL for image generation
+BACKEND_URL = os.environ.get('BACKEND_URL', 'https://your-app-name.onrender.com')
+
 # Database - MySQL on CloudMonster ASP
 DATABASES = {
     'default': {
