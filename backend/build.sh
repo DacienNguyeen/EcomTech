@@ -1,19 +1,23 @@
-﻿#!/usr/bin/env bash
-# exit on error
+﻿#!/bin/bash
 set -o errexit
 
 echo "Starting Render build process..."
 
-# Ensure we are in the backend directory
-cd "$(dirname "$0")"
+# Change to backend directory
+cd /opt/render/project/src/backend
 
-# Install Python dependencies from backend directory
-echo "Installing Python packages from backend/requirements.txt..."
-if [ ! -f "requirements.txt" ]; then
-    echo "ERROR: requirements.txt not found in backend directory"
-    exit 1
-fi
+# Verify we are in the right directory
+echo "Current directory: $(pwd)"
+echo "Contents:"
+ls -la
+
+# Install Python dependencies
+echo "Installing Python packages..."
 pip install -r requirements.txt
+
+# Verify PyJWT installation
+echo "Verifying PyJWT installation..."
+python -c "import jwt; print(f\"PyJWT version: {jwt.__version__}\")"
 
 # Collect static files
 echo "Collecting static files..."
