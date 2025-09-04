@@ -1,0 +1,35 @@
+# ========================================
+# RENDER BACKEND ENVIRONMENT VARIABLES
+# ========================================
+# Copy these values to your Render service Environment Variables
+
+# Security Settings (Required)
+DEBUG=0
+SECRET_KEY=your-super-secret-key-generate-a-new-one-here
+
+# Hosts and CORS (Required) 
+ALLOWED_HOSTS=EcomTech.onrender.com,localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=https://EcomTech.onrender.com
+CORS_ALLOWED_ORIGINS=https://ecomtech-domain.tld
+
+# Backend URL for image generation
+BACKEND_URL=https://EcomTech.onrender.com
+
+# Database Option 1: Single DATABASE_URL (Recommended)
+DATABASE_URL=mysql://USER:PASS@HOST:PORT/DB_NAME
+
+# Database Option 2: Individual credentials (Alternative)
+# DB_NAME=your_database_name
+# DB_USER=your_username
+# DB_PASSWORD=your_password
+# DB_HOST=your_host
+# DB_PORT=3306
+
+# ========================================
+# RENDER BUILD & START COMMANDS
+# ========================================
+# Build Command:
+# pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
+
+# Start Command:
+# gunicorn config.wsgi:application --log-file - --timeout 120

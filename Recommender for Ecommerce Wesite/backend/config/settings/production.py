@@ -4,37 +4,53 @@ Production settings for Render deployment
 import os
 from .base import *
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# Safe import for production dependencies
+try:
+    import dj_database_url
+except ImportError:
+    dj_database_url = None
+
+# Security
+DEBUG = int(os.environ.get('DEBUG', 0))
 SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-this')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+# Hosts - theo gợi ý Render
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'EcomTech.onrender.com,localhost,127.0.0.1').split(',')
 
-# Add your Render domain and Vercel domain
-ALLOWED_HOSTS = [
-    'your-app-name.onrender.com',  # Replace with your Render app name
-    'localhost',
-    '127.0.0.1',
-]
+# CSRF và CORS - theo gợi ý
+CSRF_TRUSTED_ORIGINS = [
+    'https://EcomTech.onrender.com',
+] + os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if os.environ.get('CSRF_TRUSTED_ORIGINS') else ['https://EcomTech.onrender.com']
+
+CORS_ALLOWED_ORIGINS = [
+    'https://ecomtech-domain.tld',  # Frontend Vercel domain
+] + os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if os.environ.get('CORS_ALLOWED_ORIGINS') else ['https://ecomtech-domain.tld']
 
 # Backend URL for image generation
-BACKEND_URL = os.environ.get('BACKEND_URL', 'https://your-app-name.onrender.com')
+BACKEND_URL = os.environ.get('BACKEND_URL', 'https://EcomTech.onrender.com')
 
-# Database - MySQL on CloudMonster ASP
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('DB_NAME', 'bookverse'),
-        'USER': os.environ.get('DB_USER', 'root'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '3306'),
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
-        },
+# Database - Support both DATABASE_URL and individual credentials
+if os.environ.get('DATABASE_URL') and dj_database_url:
+    # Parse DATABASE_URL (format: mysql://USER:PASS@HOST:PORT/DB)
+    DATABASES = {
+        'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
     }
-}
+else:
+    # Fallback to individual credentials
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.environ.get('DB_NAME', 'bookverse'),
+            'USER': os.environ.get('DB_USER', 'root'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '3306'),
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'charset': 'utf8mb4',
+            },
+        }
+    }
 
 # CORS settings for frontend
 CORS_ALLOWED_ORIGINS = [
