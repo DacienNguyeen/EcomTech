@@ -8,7 +8,12 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY','dev-secret')
 DEBUG = os.getenv('DEBUG','1') == '1'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS','*').split(',')
+
+# More flexible ALLOWED_HOSTS for development
+if DEBUG:
+    ALLOWED_HOSTS = ['*']  # Allow all hosts in development
+else:
+    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 INSTALLED_APPS = [
   'django.contrib.admin','django.contrib.auth','django.contrib.contenttypes',
