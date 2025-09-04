@@ -1,7 +1,7 @@
-from django.contrib import admin
+﻿from django.contrib import admin
 from django.urls import path, include
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -10,6 +10,9 @@ def csrf_view(request):
     return JsonResponse({"ok": True})
 
 def healthz_view(request):
+    return HttpResponse("ok", content_type="text/plain")
+
+def health_detailed_view(request):
     return JsonResponse({"status": "healthy", "service": "ecommerce-backend"})
 
 urlpatterns = [
@@ -23,10 +26,11 @@ urlpatterns = [
     # path("api/v1/cart/", include("apps.cart.api.v1.urls")),
     path("api/v1/orders/", include("apps.orders.api.v1.urls")),
     path("api/v1/payments/", include("apps.payments.api.v1.urls")),
-    
-    # Health check endpoint
-    path("api/v1/healthz/", healthz_view, name="healthz"),
-    
+
+    # Health check endpoints
+    path("healthz", healthz_view, name="healthz"),
+    path("api/v1/healthz/", health_detailed_view, name="healthz_detailed"),
+
     # CSRF endpoint
     path("api/csrf/", ensure_csrf_cookie(csrf_view), name="csrf"),
 
