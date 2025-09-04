@@ -68,10 +68,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 AUTH_USER_MODEL = 'users.User'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+  'default': {
+    'ENGINE': 'django.db.backends.mysql',
+    'NAME': os.getenv('MYSQL_DATABASE','BookStore'),
+    'USER': os.getenv('MYSQL_USER','root'),
+    'PASSWORD': os.getenv('MYSQL_PASSWORD',''),
+    'HOST': os.getenv('MYSQL_HOST','127.0.0.1'),
+    'PORT': os.getenv('MYSQL_PORT','3306'),
+    'OPTIONS': {
+        'charset': 'utf8mb4',
+        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+    },
+  }
 }
 
 STATIC_URL = '/static/'
@@ -90,8 +98,9 @@ REST_FRAMEWORK = {
   "DEFAULT_VERSION": "v1",
   "ALLOWED_VERSIONS": ("v1",),
   "DEFAULT_AUTHENTICATION_CLASSES": [
+    "apps.users.auth.SessionCustomerAuthentication",
+    "apps.users.auth.JWTAuthentication",
     "rest_framework.authentication.SessionAuthentication",
-    "rest_framework.authentication.BasicAuthentication",
   ],
   "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
   "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
@@ -103,8 +112,7 @@ SPECTACULAR_SETTINGS = {
   "DESCRIPTION": "DRF over existing MariaDB schema: catalog, orders, payments, activities.",
   "VERSION": "1.0.0",
   "SERVE_INCLUDE_SCHEMA": False,
-    # Use BACKEND_URL env when available so OpenAPI servers point to the deployment host
-    "SERVERS": [{"url": os.getenv('BACKEND_URL', 'http://localhost:8000'), "description": "Local/Configured"}],
+  "SERVERS": [{"url": "http://localhost:8000", "description": "Local"}],
 }
 
 # CORS settings for frontend connection (dev)
@@ -172,8 +180,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Frontend URL for PayPal redirects
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-# Optional BACKEND_URL to be used when constructing absolute URLs in code
-BACKEND_URL = os.getenv('BACKEND_URL', '') or None
 
 # Use signed cookie session backend to avoid creating django_session table on the
 # remote managed database (we don't run migrations against it).

@@ -12,26 +12,7 @@ def csrf_view(request):
 def healthz_view(request):
     return JsonResponse({"status": "healthy", "service": "ecommerce-backend"})
 
-def root_view(request):
-    """Root endpoint to handle HEAD / requests and provide API info"""
-    return JsonResponse({
-        "status": "ok", 
-        "service": "ecomtech-api",
-        "version": "1.0.0",
-        "endpoints": {
-            "api": "/api/v1/",
-            "docs": "/api/docs/",
-            "health": "/api/v1/healthz/"
-        }
-    })
-
 urlpatterns = [
-    # Root endpoint - handles HEAD / requests to avoid 404s
-    path("", root_view, name="root"),
-    
-    # Simple health check at root level (in addition to /api/v1/healthz/)
-    path("healthz/", healthz_view, name="healthz_root"),
-    
     path("admin/", admin.site.urls),
 
     path("api/v1/catalog/", include("apps.catalog.api.v1.urls")),

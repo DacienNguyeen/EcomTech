@@ -19,8 +19,7 @@ export const resolveImageUrl = (imageUrl) => {
     (process.env.NODE_ENV === 'production' 
       ? 'https://ecomtech.onrender.com' 
       : 'http://127.0.0.1:8000');
-  // Ensure backendHost has no trailing /api or slash
-  const backendHost = apiBase.replace(/\/api\/?$/,'').replace(/\/$/, '');
+  const backendHost = apiBase.replace('/api', '');
 
   // If starts with '/' (absolute path), combine with backend host
   if (imageUrl.startsWith('/')) {

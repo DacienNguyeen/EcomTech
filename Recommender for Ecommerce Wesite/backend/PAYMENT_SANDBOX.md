@@ -224,7 +224,7 @@ PAYMENT_TIMEOUT=30
 Simulate payment events for testing webhook handlers:
 
 ```bash
-curl -X POST ${BACKEND_URL:-http://127.0.0.1:8000}/api/v1/payments/sandbox/webhook/pay_123/ \
+curl -X POST http://127.0.0.1:8000/api/v1/payments/sandbox/webhook/pay_123/ \
   -H "Content-Type: application/json" \
   -d '{"event_type": "payment.completed"}'
 ```

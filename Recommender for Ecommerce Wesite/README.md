@@ -48,10 +48,10 @@ MYSQL_PASSWORD=5Rt%_q7Jb6T+
 # Django Settings
 SECRET_KEY=your-secret-key-here
 DEBUG=1
-ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,your-domain.com}
+ALLOWED_HOSTS=localhost,127.0.0.1,your-domain.com
 
 # CORS for frontend
-CORS_ALLOWED_ORIGINS=${FRONTEND_URL:-http://localhost:3000}
+CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
 
 ## Running the Application
