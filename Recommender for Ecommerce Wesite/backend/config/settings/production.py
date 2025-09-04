@@ -15,19 +15,22 @@ DEBUG = int(os.environ.get('DEBUG', 0))
 SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-this')
 
 # Hosts - theo gợi ý Render
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'EcomTech.onrender.com,localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'ecomtech.onrender.com,localhost,127.0.0.1').split(',')
 
 # CSRF và CORS - theo gợi ý
 CSRF_TRUSTED_ORIGINS = [
-    'https://EcomTech.onrender.com',
-] + os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if os.environ.get('CSRF_TRUSTED_ORIGINS') else ['https://EcomTech.onrender.com']
+    'https://ecomtech.onrender.com',
+] + os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if os.environ.get('CSRF_TRUSTED_ORIGINS') else ['https://ecomtech.onrender.com']
 
 CORS_ALLOWED_ORIGINS = [
     'https://ecomtech-domain.tld',  # Frontend Vercel domain
 ] + os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if os.environ.get('CORS_ALLOWED_ORIGINS') else ['https://ecomtech-domain.tld']
 
 # Backend URL for image generation
-BACKEND_URL = os.environ.get('BACKEND_URL', 'https://EcomTech.onrender.com')
+BACKEND_URL = os.environ.get('BACKEND_URL', 'https://ecomtech.onrender.com')
+
+# Frontend URL for PayPal redirects
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://ecomtech-domain.tld')
 
 # Database - Support both DATABASE_URL and individual credentials
 if os.environ.get('DATABASE_URL') and dj_database_url:

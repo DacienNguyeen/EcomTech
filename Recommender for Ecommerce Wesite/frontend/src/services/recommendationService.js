@@ -4,7 +4,7 @@ class RecommendationService {
   constructor() {
     this.baseURL = process.env.REACT_APP_API_BASE_URL || 
       (process.env.NODE_ENV === 'production' 
-        ? 'https://EcomTech.onrender.com/api/v1' 
+        ? 'https://ecomtech.onrender.com/api/v1' 
         : 'http://localhost:8000/api/v1');
   }
 

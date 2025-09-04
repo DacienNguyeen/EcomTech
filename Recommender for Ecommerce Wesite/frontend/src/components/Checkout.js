@@ -2,26 +2,67 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FaCreditCard, FaPaypal, FaMoneyBillWave, FaArrowLeft } from 'react-icons/fa';
+import Payment from './Payment';
 
 export default function Checkout({ total, onClear }) {
   const [form, setForm] = useState({ name: '', address: '' });
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [showPayment, setShowPayment] = useState(false);
+  const [orderId, setOrderId] = useState(null);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!paymentMethod) {
       toast.error('Vui lòng chọn phương thức thanh toán.');
       return;
     }
-    toast.success('Thanh toán thành công!');
+
+    if (paymentMethod === 'paypal') {
+      // Generate mock order ID for demo
+      const mockOrderId = Date.now();
+      setOrderId(mockOrderId);
+      setShowPayment(true);
+    } else if (paymentMethod === 'cod') {
+      toast.success('Đơn hàng đã được xác nhận! Thanh toán khi nhận hàng.');
+      onClear();
+      navigate('/');
+    } else {
+      toast.success('Thanh toán thành công!');
+      onClear();
+      navigate('/');
+    }
+  };
+
+  const handlePaymentSuccess = (paymentData) => {
+    toast.success('Thanh toán PayPal thành công!');
+    console.log('Payment successful:', paymentData);
     onClear();
     navigate('/');
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPayment(false);
+    toast.info('Thanh toán đã bị hủy');
   };
 
   const handlePaymentChange = (e) => {
     setPaymentMethod(e.target.value);
   };
+
+  // Show payment component if PayPal is selected and form submitted
+  if (showPayment && paymentMethod === 'paypal') {
+    return (
+      <div className="payment-wrapper">
+        <Payment
+          orderId={orderId}
+          totalAmount={total}
+          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentCancel={handlePaymentCancel}
+        />
+      </div>
+    );
+  }
 
   return (
     <section className="auth-section">

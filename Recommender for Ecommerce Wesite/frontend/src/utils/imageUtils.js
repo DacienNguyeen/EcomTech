@@ -17,7 +17,7 @@ export const resolveImageUrl = (imageUrl) => {
   // Get backend host - use React env variables with production fallback
   const apiBase = process.env.REACT_APP_API_URL || 
     (process.env.NODE_ENV === 'production' 
-      ? 'https://EcomTech.onrender.com' 
+      ? 'https://ecomtech.onrender.com' 
       : 'http://127.0.0.1:8000');
   const backendHost = apiBase.replace('/api', '');
 

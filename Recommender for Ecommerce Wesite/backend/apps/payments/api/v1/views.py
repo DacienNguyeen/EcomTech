@@ -163,6 +163,70 @@ def capture_paypal_payment(request):
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@extend_schema(
+    tags=["payments"],
+    summary="PayPal webhook handler",
+    description="Handle PayPal webhook events for payment notifications"
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])  # PayPal webhooks don't use authentication
+def paypal_webhook(request):
+    """Handle PayPal webhook events"""
+    try:
+        # Get webhook data
+        webhook_data = request.data
+        event_type = webhook_data.get('event_type', '')
+        resource = webhook_data.get('resource', {})
+        
+        logger.info(f"PayPal webhook received: {event_type}")
+        
+        # Handle different event types
+        if event_type == 'PAYMENT.CAPTURE.COMPLETED':
+            # Payment was successfully captured
+            paypal_order_id = resource.get('supplementary_data', {}).get('related_ids', {}).get('order_id')
+            capture_id = resource.get('id')
+            
+            if paypal_order_id:
+                try:
+                    payment = Payment.objects.get(PaypalOrderID=paypal_order_id)
+                    payment.Status = 'completed'
+                    payment.TransactionID = capture_id
+                    payment.save()
+                    
+                    # Update order status
+                    if payment.OrderID:
+                        try:
+                            order = Order.objects.get(OrderID=payment.OrderID)
+                            order.Status = 'paid'
+                            order.save()
+                        except Order.DoesNotExist:
+                            pass
+                    
+                    logger.info(f"Payment updated via webhook: {payment.PaymentID}")
+                except Payment.DoesNotExist:
+                    logger.warning(f"Payment not found for PayPal order: {paypal_order_id}")
+        
+        elif event_type == 'PAYMENT.CAPTURE.DENIED':
+            # Payment was denied
+            paypal_order_id = resource.get('supplementary_data', {}).get('related_ids', {}).get('order_id')
+            
+            if paypal_order_id:
+                try:
+                    payment = Payment.objects.get(PaypalOrderID=paypal_order_id)
+                    payment.Status = 'failed'
+                    payment.save()
+                    
+                    logger.info(f"Payment marked as failed via webhook: {payment.PaymentID}")
+                except Payment.DoesNotExist:
+                    logger.warning(f"Payment not found for PayPal order: {paypal_order_id}")
+        
+        return Response({'status': 'success'})
+        
+    except Exception as e:
+        logger.error(f"PayPal webhook error: {e}")
+        return Response({'error': 'Webhook processing failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # ...existing code...
 
 
