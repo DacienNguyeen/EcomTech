@@ -12,7 +12,7 @@ class RecommendationService {
     try {
       const response = await ApiService.request(`/recommendations/v1/content/?k=${k}`, {
         method: 'GET',
-        auth: true // Requires authentication
+        auth: false // Don't require auth for now since we use AllowAny
       });
       return response;
     } catch (error) {

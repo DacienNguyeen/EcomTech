@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ProductModal from "./ProductModal";
-import { catalogService } from "../services";
+import { catalogService, trackingService } from "../services";
+import ProductImage from "./ProductImage";
 
 export default function ProductList({ query = "", category = "all", onAddToCart, onCategoryChange }) {
   const [page, setPage] = useState(1);
@@ -96,14 +97,17 @@ export default function ProductList({ query = "", category = "all", onAddToCart,
         <>
           <div className="product-grid">
             {books.map((book) => (
-              <div key={book.BookID || book.id} className="product-card" onClick={() => setSelected(book)}>
+              <div key={book.BookID || book.id} className="product-card" onClick={() => {
+                // Track product click
+                trackingService.trackProductClick(book.BookID || book.id);
+                setSelected(book);
+              }}>
                 <div className="product-image">
-                  <img 
-                    src={book.image_url || book.ImageURL || book.coverImage || 'http://127.0.0.1:8000/media/book_images/default.svg'} 
+                  <ProductImage
+                    src={book.image_url || book.ImageURL || book.coverImage}
                     alt={book.Title || book.title}
-                    onError={(e) => {
-                      e.target.src = 'http://127.0.0.1:8000/media/book_images/default.svg';
-                    }}
+                    width="100%"
+                    height={300}
                   />
                 </div>
                 <div className="product-info">

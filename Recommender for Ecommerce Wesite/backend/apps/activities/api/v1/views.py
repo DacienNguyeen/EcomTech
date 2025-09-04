@@ -1,6 +1,6 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from ...services.log_activity import log_event
@@ -14,16 +14,22 @@ from apps.recommendations.services import recommendation_engine
     responses={201: OpenApiResponse(description="Created, returns id")}
 )
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # TODO: Change back to IsAuthenticated after testing
 def create_activity(request):
     # support JWT principal via request.user or fallback to session
     customer_id = None
     # Prefer authenticated principal (JWT or session-based)
-    customer_id = getattr(request.user, 'id', None)
-    if customer_id is None:
+    if hasattr(request.user, 'id') and request.user.id:
+        customer_id = request.user.id  # CustomerPrincipal.id = CustomerID
+    elif hasattr(request.user, 'customer') and request.user.customer:
+        customer_id = request.user.customer.CustomerID  # Django User -> Customer relation
+    else:
         customer_id = request.session.get("customer_id")
+    
+    # For testing: use default customer_id if not authenticated
     if customer_id is None:
-        return Response({"detail": "Login required"}, status=status.HTTP_401_UNAUTHORIZED)
+        customer_id = 1  # TODO: Remove this after testing, should return 401
+        print(f"⚠️  Using default customer_id={customer_id} for testing")
 
     serializer = ActivityIn(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -60,11 +66,17 @@ def create_activity(request):
     responses={201: OpenApiResponse(description="Created count")}
 )
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # TODO: Change back to IsAuthenticated after testing  
 def create_activity_bulk(request):
-    customer_id = getattr(request.user, 'id', None)
-    if customer_id is None:
+    # Extract CustomerID properly from authenticated user
+    customer_id = None
+    if hasattr(request.user, 'id'):  # CustomerPrincipal from JWT
+        customer_id = request.user.id
+    elif hasattr(request.user, 'customer') and request.user.customer:  # Django User with Customer relation
+        customer_id = request.user.customer.CustomerID
+    else:
         customer_id = request.session.get("customer_id")
+    
     if customer_id is None:
         return Response({"detail": "Login required"}, status=status.HTTP_401_UNAUTHORIZED)
 

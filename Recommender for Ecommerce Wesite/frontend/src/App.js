@@ -36,10 +36,20 @@ export default function App() {
     localStorage.setItem("book_cart", JSON.stringify(cart));
   }, [cart]);
 
+  // Set user ID for tracking when user changes
+  useEffect(() => {
+    if (user && user.id) {
+      trackingService.setUser(user.id);
+    }
+  }, [user]);
+
   const cartCount = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
   const cartTotal = useMemo(() => cart.reduce((s, i) => s + i.price * i.quantity, 0), [cart]);
 
   function addToCart(book, quantity) {
+    // Track add to cart activity
+    trackingService.trackAddToCart(book.BookID || book.id);
+    
     setCart(currentCart => {
       const itemIndex = currentCart.findIndex(item => item.id === book.id);
       if (itemIndex > -1) {

@@ -52,6 +52,7 @@ class Book(models.Model):
     Stock = models.IntegerField(null=True, blank=True, db_column='Stock')
     Description = models.TextField(null=True, blank=True, db_column='Description')
     PublicationDate = models.DateField(null=True, blank=True, db_column='PublicationDate')
+    ImageURL = models.URLField(null=True, blank=True, db_column='ImageURL')
 
     class Meta:
         managed = False

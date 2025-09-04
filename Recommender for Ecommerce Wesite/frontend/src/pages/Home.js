@@ -1,7 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
 import ProductList from "../components/ProductList";
-import Recommendation from "../components/Recommendation";
 import ContentRecommendation from "../components/ContentRecommendation";
 
 
@@ -23,9 +22,6 @@ export default function Home({ query = "", category = "all", onAddToCart, onCate
   
   {/* Content-Based Personalized Recommendations */}
   <ContentRecommendation title="🎯 Gợi ý cá nhân hóa dành cho bạn" maxItems={8} />
-  
-  {/* General Category-Based Recommendations */}
-  <Recommendation category={category} title="📚 Sách phổ biến" />
     </>
   );
 }

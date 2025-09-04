@@ -4,7 +4,13 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
-    this.token = localStorage.getItem('auth_token');
+  }
+
+  // Get current token (realtime)
+  getToken() {
+    return localStorage.getItem('auth_token') || 
+           localStorage.getItem('access_token') || 
+           localStorage.getItem('authToken');
   }
 
   // Helper method to get headers
@@ -13,8 +19,11 @@ class ApiService {
       'Content-Type': 'application/json',
     };
     
-    if (includeAuth && this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    if (includeAuth) {
+      const token = this.getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
     
     return headers;
@@ -50,7 +59,6 @@ class ApiService {
 
   // Update token
   setToken(token) {
-    this.token = token;
     if (token) {
       localStorage.setItem('auth_token', token);
     } else {

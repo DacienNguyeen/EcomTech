@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ProductModal from "./ProductModal";
 import { catalogService } from "../services";
+import ProductImage from './ProductImage';
 
 export default function ProductList({ query = "", category = "all", onAddToCart, onCategoryChange }) {
   const [page, setPage] = useState(1);
@@ -95,7 +96,12 @@ export default function ProductList({ query = "", category = "all", onAddToCart,
             {books.map((book) => (
               <div key={book.id} className="product-card" onClick={() => setSelected(book)}>
                 <div className="product-image">
-                  <img src={book.image_url || book.coverImage} alt={book.title} />
+                  <ProductImage 
+                    src={book.image_url || book.coverImage} 
+                    alt={book.title}
+                    width="100%"
+                    height={280}
+                  />
                 </div>
                 <div className="product-info">
                   <h3 className="product-title">{book.title}</h3>

@@ -2,6 +2,17 @@ from rest_framework import serializers
 from ...models import Book, Author, Category, Publisher
 
 
+def get_absolute_image_url(image_path):
+    """Convert relative image path to absolute URL - same as recommendation service"""
+    if not image_path:
+        return ''
+    if image_path.startswith(('http://', 'https://')):
+        return image_path
+    if image_path.startswith('/'):
+        return f"http://127.0.0.1:8000{image_path}"
+    return f"http://127.0.0.1:8000/media/{image_path}"
+
+
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
@@ -29,5 +40,5 @@ class BookSerializer(serializers.ModelSerializer):
                   'Price', 'Stock', 'Description', 'PublicationDate', 'image_url']
     
     def get_image_url(self, obj):
-        # Tạo URL hình ảnh dựa trên BookID
-        return f"http://127.0.0.1:8000/media/book_images/{obj.BookID}.svg"
+        """Use the same image URL logic as recommendation service"""
+        return get_absolute_image_url(obj.ImageURL)

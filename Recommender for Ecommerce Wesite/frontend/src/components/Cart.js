@@ -1,19 +1,17 @@
-// Cart.js
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { FaTrash, FaPlus, FaMinus } from "react-icons/fa";
-import Recommendation from "./Recommendation";
-import { BOOKS } from "./ProductList";
+import ProductImage from "./ProductImage";
 
-function formatVND(n) {
-  return n.toLocaleString("vi-VN") + "₫";
+function formatVND(price) {
+  const numPrice = Number(price);
+  if (!price || isNaN(numPrice) || numPrice < 0) {
+    return "0₫";
+  }
+  return numPrice.toLocaleString("vi-VN") + "₫";
 }
 
 export default function Cart({ items, total, onInc, onDec, onRemove, onClear }) {
-  const bestSellers = useMemo(() => {
-    return BOOKS.sort((a, b) => b.rating - a.rating).slice(0, 8);
-  }, []);
-
   return (
     <section className="container">
       <h1>Giỏ hàng</h1>
@@ -28,7 +26,13 @@ export default function Cart({ items, total, onInc, onDec, onRemove, onClear }) 
         <div className="cart-items">
           {items.map((it) => (
             <div key={it.BookID || it.id} className="card cart-item">
-              <img src={it.coverImage || it.ImageURL} alt={it.title || it.Title} className="cart-image" />
+              <ProductImage 
+                src={it.coverImage || it.ImageURL || it.image_url}
+                alt={it.title || it.Title}
+                className="cart-image"
+                width={80}
+                height={100}
+              />
               <div className="cart-details">
                 <div style={{ fontWeight: 700 }}>{it.title || it.Title}</div>
                 <div className="muted" style={{ fontSize: 13 }}>
@@ -45,7 +49,7 @@ export default function Cart({ items, total, onInc, onDec, onRemove, onClear }) 
                 </div>
               </div>
               <div className="cart-actions">
-                <div className="price">{formatVND(it.price * it.quantity)}</div>
+                <div className="price">{formatVND((it.price || it.Price || 0) * (it.quantity || 0))}</div>
                 <button
                   className="btn btn-danger"
                   onClick={() => onRemove(it.id)}
@@ -90,10 +94,6 @@ export default function Cart({ items, total, onInc, onDec, onRemove, onClear }) 
             </div>
           </div>
         </aside>
-      </div>
-
-      <div className="cart-info">
-        <Recommendation title="Sách được mua nhiều" items={bestSellers} />
       </div>
     </section>
   );

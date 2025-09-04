@@ -3,6 +3,7 @@ import React, { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { BOOKS, formatVND } from "./ProductList";
 import Recommendation from "./Recommendation";
+import ProductImage from "./ProductImage";
 import { FaStar, FaShoppingCart } from "react-icons/fa";
 
 export default function ProductDetail({ onAddToCart }) {
@@ -15,10 +16,12 @@ export default function ProductDetail({ onAddToCart }) {
     <div className="container">
       <div className="detail-layout">
         <div className="card detail-card">
-          <img
+          <ProductImage
             src={book.coverImage}
             alt={book.title}
             className="detail-image"
+            width="100%"
+            height={500}
           />
           <div className="card-body">
             <h1>{book.title}</h1>

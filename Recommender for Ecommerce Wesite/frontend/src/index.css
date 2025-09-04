@@ -1194,9 +1194,19 @@ body::before {
   color: var(--text-main);
 }
 
-.modal-info .author {
+.modal-info p {
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.modal-info .author,
+.modal-info .category,
+.modal-info .publisher,
+.modal-info .year,
+.modal-info .isbn,
+.modal-info .stock {
   color: var(--muted);
-  margin-bottom: var(--spacing-sm);
+  font-size: 0.95rem;
 }
 
 .modal-info .price {
@@ -1206,9 +1216,22 @@ body::before {
   margin-bottom: var(--spacing-md);
 }
 
+.modal-info .description-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.modal-info .description-section h4 {
+  margin-bottom: 0.75rem;
+  color: var(--text-main);
+  font-size: 1.1rem;
+}
+
 .modal-info .description {
   margin-bottom: var(--spacing-lg);
   line-height: 1.6;
+  color: #4b5563;
 }
 
 .modal-actions {

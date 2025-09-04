@@ -1,9 +1,9 @@
-// Recommendation.js
 import React, { useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { BOOKS } from "./ProductList";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import PropTypes from "prop-types";
+import ProductImage from './ProductImage';
 
 export default function Recommendation({ current = null, category = "all", title = "Có thể bạn sẽ thích", items = null }) {
   const carouselRef = useRef(null);
@@ -46,7 +46,14 @@ export default function Recommendation({ current = null, category = "all", title
           <div className="carousel-inner">
             {recItems.map(b => (
               <Link to={`/product/${b.BookID || b.id}`} key={b.BookID || b.id} className="card rec-card">
-                <img src={b.coverImage || b.ImageURL} alt={b.title || b.Title} className="rec-image" loading="lazy" />
+                <ProductImage
+                  src={b.coverImage || b.ImageURL || b.image_url}
+                  alt={b.title || b.Title}
+                  className="rec-image"
+                  width={180}
+                  height={220}
+                  style={{ borderRadius: '8px' }}
+                />
                 <div className="card-body">
                   <div className="rec-title">{b.title || b.Title}</div>
                   <div className="muted rec-rating">★ {b.rating || '5.0'}</div>

@@ -26,6 +26,52 @@ class TrackingService {
     this.userId = userId;
   }
 
+  // Track product view activity
+  async trackProductView(bookId) {
+    return this.sendActivityEvent('view', bookId);
+  }
+
+  // Track product click activity  
+  async trackProductClick(bookId) {
+    return this.sendActivityEvent('view', bookId);  // Use 'view' instead of 'click'
+  }
+
+  // Track add to cart activity
+  async trackAddToCart(bookId) {
+    return this.sendActivityEvent('add_to_cart', bookId);
+  }
+
+  async sendActivityEvent(action, bookId, additionalData = {}) {
+    try {
+      const payload = {
+        book_id: bookId,
+        action: action,
+        activity_time: new Date().toISOString(),
+        ...additionalData
+      };
+
+      if (this.isOnline) {
+        // Send to activity tracking API
+        const response = await ApiService.post('/activities/', payload);
+        return response.data;
+      } else {
+        // Queue for later if offline
+        this.eventQueue.push(payload);
+        return { queued: true };
+      }
+    } catch (error) {
+      console.error('Error tracking activity:', error);
+      // Queue for retry if request fails
+      this.eventQueue.push({
+        book_id: bookId,
+        action: action, 
+        activity_time: new Date().toISOString(),
+        ...additionalData
+      });
+      return { error: error.message };
+    }
+  }
+
   async sendEvent(action, data = {}) {
     try {
       const payload = {
@@ -97,8 +143,18 @@ class TrackingService {
     this.eventQueue = [];
 
     try {
-      await this.sendBulkEvents(events);
+      // Try to send each queued activity event
+      for (const event of events) {
+        try {
+          await ApiService.post('/activities/', event);
+        } catch (error) {
+          console.error('Failed to send queued activity:', error);
+          // Put failed events back in queue
+          this.eventQueue.push(event);
+        }
+      }
     } catch (error) {
+      console.error('Error flushing event queue:', error);
       // If still failed, put back in queue
       this.eventQueue.unshift(...events);
     }

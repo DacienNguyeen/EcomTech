@@ -4,6 +4,7 @@ Dựa trên dữ liệu tracking của user để gợi ý sách tương tự v�
 """
 from django.db import connection
 from django.utils import timezone
+from django.conf import settings
 from collections import defaultdict, Counter
 from functools import lru_cache
 import re
@@ -12,6 +13,16 @@ import logging
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
+
+def get_absolute_image_url(image_path):
+    """Convert relative image path to absolute URL"""
+    if not image_path:
+        return ''
+    if image_path.startswith(('http://', 'https://')):
+        return image_path
+    if image_path.startswith('/'):
+        return f"http://127.0.0.1:8000{image_path}"
+    return f"http://127.0.0.1:8000/media/{image_path}"
 
 class ContentBasedRecommendationEngine:
     """
@@ -331,7 +342,7 @@ class ContentBasedRecommendationEngine:
                         'price': float(price) if price else 0.0,
                         'stock': stock or 0,
                         'description': description or '',
-                        'image_url': image_url or '',
+                        'image_url': get_absolute_image_url(image_url),
                         'isbn': isbn or '',
                         'year': year,
                         'score': round(score_dict.get(book_id, 0.0), 4)
