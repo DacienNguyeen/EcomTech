@@ -143,7 +143,7 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'ERROR',  # Chỉ log error
+            'level': 'ERROR',  # Back to error level for production
             'propagate': False,
         },
         'apps.recommendations': {

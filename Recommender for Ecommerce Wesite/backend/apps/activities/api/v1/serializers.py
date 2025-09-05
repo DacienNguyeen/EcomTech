@@ -1,7 +1,12 @@
 from rest_framework import serializers
 from django.utils import timezone
 
-ACTION_CHOICES = ("view", "add_to_cart", "checkout", "purchase")
+ACTION_CHOICES = [
+    ("view", "View"),
+    ("add_to_cart", "Add to Cart"),
+    ("checkout", "Checkout"),
+    ("purchase", "Purchase"),
+]
 
 class ActivityIn(serializers.Serializer):
     book_id = serializers.IntegerField()

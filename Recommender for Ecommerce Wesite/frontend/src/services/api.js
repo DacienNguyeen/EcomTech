@@ -60,6 +60,39 @@ class ApiService {
     }
   }
 
+  // Convenience methods for common HTTP verbs
+  async get(endpoint, options = {}) {
+    return this.request(endpoint, { method: 'GET', ...options });
+  }
+
+  async post(endpoint, data, options = {}) {
+    return this.request(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      ...options
+    });
+  }
+
+  async put(endpoint, data, options = {}) {
+    return this.request(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      ...options
+    });
+  }
+
+  async patch(endpoint, data, options = {}) {
+    return this.request(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+      ...options
+    });
+  }
+
+  async delete(endpoint, options = {}) {
+    return this.request(endpoint, { method: 'DELETE', ...options });
+  }
+
   // Update token
   setToken(token) {
     if (token) {

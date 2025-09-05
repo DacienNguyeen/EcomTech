@@ -51,9 +51,9 @@ class TrackingService {
       };
 
       if (this.isOnline) {
-        // Send to activity tracking API
+        // Send to activity tracking API using ApiService.post
         const response = await ApiService.post('/activities/', payload);
-        return response.data;
+        return response;
       } else {
         // Queue for later if offline
         this.eventQueue.push(payload);
@@ -74,25 +74,33 @@ class TrackingService {
 
   async sendEvent(action, data = {}) {
     try {
+      // Map generic actions to activity API format
+      const actionMapping = {
+        'product_view': 'view',
+        'add_to_cart': 'add_to_cart',
+        'remove_from_cart': 'add_to_cart', // Map to existing action
+        'page_view': 'view',
+        'modal_open': 'view',
+        'modal_close': 'view',
+        'search': 'view'
+      };
+
+      const mappedAction = actionMapping[action] || 'view';
+      const productId = data.product_id || data.book_id || 1; // fallback to default book
+
       const payload = {
-        session_id: this.sessionId,
-        user_id: this.userId,
-        action,
-        timestamp: new Date().toISOString(),
-        metadata: data
+        book_id: productId,
+        action: mappedAction,
+        activity_time: new Date().toISOString()
       };
 
       if (this.isOnline) {
-        // Send to backend
+        // Send to backend using activities API format
         try {
-          await ApiService.request('/activities/', {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            auth: !!this.userId
-          });
+          const response = await ApiService.post('/activities/', payload);
           
           console.log('📊 Tracking Event Sent:', payload);
-          return { success: true, data: payload };
+          return { success: true, data: response };
         } catch (error) {
           // If failed to send, add to queue
           this.eventQueue.push(payload);
